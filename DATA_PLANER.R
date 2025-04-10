@@ -17,16 +17,16 @@ source('SETUP.R')
 milk_th_exclusive = 0.75;
 milk_th_mixed     = 0.5;
 
-planer_data_iga = read_excel('PLANER_DATA/41586_2016_BFnature17940_MOESM321_ESM_edited.xlsx', sheet='SuppTable_13')
+planer_data_iga = read_excel('./PLANER_DATA/41586_2016_BFnature17940_MOESM321_ESM_edited.xlsx', sheet='SuppTable_13')
 planer_data_iga$`Study ID` = round(as.numeric(planer_data_iga$`Study ID`),1)
-write_xlsx(planer_data_iga, "PLANER_DATA/planer_data_iga.xlsx")
+write_xlsx(planer_data_iga, "./PLANER_DATA/IGASEQ_DATA_RAW.xlsx")
 
 planer_data_meta = read_excel('PLANER_DATA/41586_2016_BFnature17940_MOESM321_ESM_edited.xlsx', sheet='SuppTable_2')
 # I think column names are mixed here, so gonna fix to make it compatible with the prev. one
 colnames_keep = colnames(planer_data_meta)[1:2]
 colnames(planer_data_meta)[2:1]=colnames_keep
 planer_data_iga$`Study ID` = round(as.numeric(planer_data_iga$`Study ID`),1)
-write_xlsx(planer_data_meta, "PLANER_DATA/planer_data_meta.xlsx")
+write_xlsx(planer_data_meta, "./PLANER_DATA/IGASEQ_DATA_METADATA.xlsx")
 
 # Extract days and months from the second column
 planer_data_iga <- planer_data_iga %>%
@@ -308,3 +308,21 @@ planer_data_iga_longer_ento
 
 boxplot_values_df_bifi
 boxplot_values_df_ento
+
+boxplot_values_df_bifi$taxon = 'Bifidobacteriaceae'
+boxplot_values_df_ento$taxon = 'Enterobacteriaceaec'
+
+boxplot_values_df_bifi_save = boxplot_values_df_bifi[c('bin_idx_scaled', 'median','taxon')]
+boxplot_values_df_ento_save = boxplot_values_df_ento[c('bin_idx_scaled', 'median','taxon')]
+colnames(boxplot_values_df_bifi_save)[1] = 'day'
+colnames(boxplot_values_df_ento_save)[1] = 'day'
+
+colnames(boxplot_values_df_bifi_save)[2] = 'IgA_index'
+colnames(boxplot_values_df_ento_save)[2] = 'IgA_index'
+
+boxplot_values_df_bifi_save$IgA_index = round(boxplot_values_df_bifi_save$IgA_index,2)
+boxplot_values_df_ento_save$IgA_index = round(boxplot_values_df_ento_save$IgA_index,2)
+
+boxplot_values_df = rbind(boxplot_values_df_bifi_save,boxplot_values_df_ento_save)
+
+write_xlsx(boxplot_values_df, "./PLANER_DATA/IGASEQ_DATA_PREPROCESSED.xlsx")

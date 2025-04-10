@@ -2018,8 +2018,8 @@ server <- function(input, output, session) {
       ) +
       coord_flip() +
       geom_hline(yintercept = 0, linetype = "solid", color = "black", size = 1) + # Corrected line at y=0
-      scale_fill_manual(values=c('gray', 'black','#FC6736'),labels = c("SIgA+ (C)", "SIgA+ (N)", "IgA Index")) +
-      scale_pattern_manual(values=c('none', 'none', 'stripe'),labels = c("SIgA+ (C)", "SIgA+ (N)", "IgA Index")) +
+      scale_fill_manual(values=c('gray', 'black','#FC6736'),labels = c("SIgA+ (M)", "SIgA+ (N)", "IgA Index")) +
+      scale_pattern_manual(values=c('none', 'none', 'stripe'),labels = c("SIgA+ (M)", "SIgA+ (N)", "IgA Index")) +
       ggpubr::theme_pubr() +
       theme(
         legend.position = "right",

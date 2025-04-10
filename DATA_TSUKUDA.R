@@ -29,14 +29,14 @@ library(cowplot)
 library(ggpubr)
 
 
-data_yagahi_2 = read_excel('./YAGAHI_DATA/Tsukuda_Yagahi(2021)ISME_16S-data_edited.xlsx', sheet='level-2')
-data_yagahi_3 = read_excel('./YAGAHI_DATA/Tsukuda_Yagahi(2021)ISME_16S-data_edited.xlsx', sheet='level-3')
-data_yagahi_4 = read_excel('./YAGAHI_DATA/Tsukuda_Yagahi(2021)ISME_16S-data_edited.xlsx', sheet='level-4')
-data_yagahi_5 = read_excel('./YAGAHI_DATA/Tsukuda_Yagahi(2021)ISME_16S-data_edited.xlsx', sheet='level-5')
-data_yagahi_6 = read_excel('./YAGAHI_DATA/Tsukuda_Yagahi(2021)ISME_16S-data_edited.xlsx', sheet='level-6')
+data_yagahi_2 = read_excel('./TSUKUDA_DATA/Tsukuda_Yagahi(2021)ISME_16S-data_edited.xlsx', sheet='level-2')
+data_yagahi_3 = read_excel('./TSUKUDA_DATA/Tsukuda_Yagahi(2021)ISME_16S-data_edited.xlsx', sheet='level-3')
+data_yagahi_4 = read_excel('./TSUKUDA_DATA/Tsukuda_Yagahi(2021)ISME_16S-data_edited.xlsx', sheet='level-4')
+data_yagahi_5 = read_excel('./TSUKUDA_DATA/Tsukuda_Yagahi(2021)ISME_16S-data_edited.xlsx', sheet='level-5')
+data_yagahi_6 = read_excel('./TSUKUDA_DATA/Tsukuda_Yagahi(2021)ISME_16S-data_edited.xlsx', sheet='level-6')
 
 
-data_yagahi_supp = read_excel('./YAGAHI_DATA/41396_2021_937_MOESM2_ESM_edited.xlsx')
+data_yagahi_supp = read_excel('./TSUKUDA_DATA/41396_2021_937_MOESM2_ESM_edited.xlsx')
 data_use = as.data.frame(data_yagahi_6) # pick the data on the GENUS level
 column_names = c('Sample',as.character(data_use[3,2:dim(data_use)[2]]))
 data_use = data_use[4:dim(data_use)[1],]
@@ -45,7 +45,7 @@ data_use = dplyr::select(data_use, -c(UNCLASSIFIED, uncultured, `gut metagenome`
                                       `uncultured Peptostreptococcus sp.`,unidentified, `Finegoldia magna`))
 data_use_merged = merge(data_use, data_yagahi_supp, by='Sample')
 ### SAVE THE RAW DATA
-write_xlsx(data_use_merged, "./YAGAHI_DATA/RELATIVE_ABUNDANCE_DATA_RAW.xlsx")
+write_xlsx(data_use_merged, "./TSUKUDA_DATA/RELATIVE_ABUNDANCE_DATA_RAW.xlsx")
 
 cut0  = which(colnames(data_use_merged)=='Sample')+1
 cut1  = which(colnames(data_use_merged)=='Subject')-1
@@ -91,10 +91,10 @@ taxanomy_table$genus = c('Escherichia-Shigella','Bifidobacterium',
 
 taxanomy_table$family = c('Enterobacteriaceae','Bifidobacteriaceae',
                           'Bacteroidaceae',
-                          'Clostridales','Clostridales',"Clostridales",
-                          'Clostridales','Clostridales','Clostridales',
-                          'Clostridales','Clostridales','Clostridales',
-                          'Clostridales','Clostridales')
+                          'Clostridiales','Clostridiales',"Clostridiales",
+                          'Clostridiales','Clostridiales','Clostridiales',
+                          'Clostridiales','Clostridiales','Clostridiales',
+                          'Clostridiales','Clostridiales')
 
 taxanomy_table = as.data.frame(taxanomy_table)
 all_families = unique(taxanomy_table$family)
@@ -130,7 +130,7 @@ for(family_pick in all_families){
   smoothed_data_all    = rbind(smoothed_data_all,smoothed_data)
   
   graphics.off()
-  png(file =paste0("./YAGAHI_DATA/FIGS/REL_ABUNDANCE_",family_pick,".png"),   # The directory you want to save the file in
+  png(file =paste0("./TSUKUDA_DATA/FIGS/REL_ABUNDANCE_",family_pick,".png"),   # The directory you want to save the file in
       width     = 8,
       height    = 3,
       units     = "in",
@@ -153,13 +153,15 @@ for(family_pick in all_families){
 combined_plot <- wrap_plots(plot_list, ncol = 2)  # Adjust ncol as needed
 
 # Save the combined plot
-ggsave(paste0("./YAGAHI_DATA/FIGS/REL_ABUNDANCE_ALL_FAMILIES.png"), plot = combined_plot, width = 12, height = 6, dpi = 600)
+ggsave(paste0("./TSUKUDA_DATA/FIGS/REL_ABUNDANCE_ALL_FAMILIES.png"), plot = combined_plot, width = 12, height = 6, dpi = 600)
 
 saveRDS(smoothed_data_all,'smoothed_data_all.rds')
+write_xlsx(smoothed_data_all, "./TSUKUDA_DATA/RELATIVE_ABUNDANCE_DATA_SMOOTHED.xlsx")
+
 
 source('./misc/SMOOTH_DATA.R')
 ## SAVE THE PRE-PROCESSED DATA
-write_xlsx(abundanceArray_meanSubjects_longer_c, "./YAGAHI_DATA/RELATIVE_ABUNDANCE_DATA_PREPROCESSED.xlsx")
+write_xlsx(abundanceArray_meanSubjects_longer_c, "./TSUKUDA_DATA/RELATIVE_ABUNDANCE_DATA_PREPROCESSED.xlsx")
 
 
 

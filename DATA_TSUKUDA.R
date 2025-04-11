@@ -61,9 +61,12 @@ data_use_merged_sub_check = as.data.frame(data_use_merged_sub_check)
 data_use_merged_sub_check = mutate_all(data_use_merged_sub_check, function(x) as.numeric(as.character(x)))
 max(rowSums(data_use_merged_sub_check)) # 100!, phew!
 
-data_use_merged_sub = data_use_merged[c('day','month',taxonomy_use)]
+data_use_merged_sub       = data_use_merged[c('day','month',taxonomy_use)]
+data_use_merged_sub_clean = data_use_merged_sub[,(1):(243+2)]
+data_use_merged_sub_clean = data_use_merged_sub_clean %>% select(-c(month))
 
-data_use_merged     = mutate_all(data_use_merged, function(x) as.numeric(as.character(x)))
+data_use_merged_sub       = data_use_merged[c('day','month',taxonomy_use)]
+data_use_merged       = mutate_all(data_use_merged, function(x) as.numeric(as.character(x)))
 data_use_merged_sub$days = 30*round(data_use_merged_sub$month)
 data_use_merged_sub = na.omit(data_use_merged_sub)
 data_use_merged_sub = data_use_merged_sub%>%  mutate_all(as.numeric) # make all values numeric
@@ -162,6 +165,4 @@ write_xlsx(smoothed_data_all, "./TSUKUDA_DATA/RELATIVE_ABUNDANCE_DATA_SMOOTHED.x
 source('./misc/SMOOTH_DATA.R')
 ## SAVE THE PRE-PROCESSED DATA
 write_xlsx(abundanceArray_meanSubjects_longer_c, "./TSUKUDA_DATA/RELATIVE_ABUNDANCE_DATA_PREPROCESSED.xlsx")
-
-
 

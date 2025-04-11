@@ -1,6 +1,22 @@
 # ONIMTOL
 Repository for the manuscript "The ontogeny of immune tolerance: a model of the early-life gut microbiome and adaptive immunity."
 
+## Data Repository
+This repository now contains all the datasets used throughout our inference process. The data is organized into subfolders named after the lead authors of the corresponding references:
+
+| Dataset | Source | Description | Data Files | R Scripts |
+|---------|--------|-------------|------|-------|
+| `TSUKUDA_DATA/` | Tsukuda _et al._, 2021 | Relative abundance data (exclusive breastfeeding for all subjects) | `RELATIVE_ABUNDANCE_DATA_RAW.xlsx` (raw data) `RELATIVE_ABUNDANCE_DATA_SMOOTHED.xlsx` (smoothed time series data) `RELATIVE_ABUNDANCE_DATA_PREPROCESSED.xlsx` (pre-processed data used for model fitting) | `DATA_TSUKUDA.R` for pre-processing |
+| `PLANER_DATA/` | Planer _et al._, 2016 | IgA-Seq data | `IGASEQ_DATA_RAW.xlsx` (raw data) `IGASEQ_DATA_METADATA.xlsx` (metadata) `IGASEQ_DATA_PREPROCESSED.xlsx` (pre-processed data used for model fitting) | `DATA_PLANER.R` for pre-processing |
+| `PAN_DATA/` | Pan _et al._, 2022 | Relative abundance data in the absence of breastfeeding |  `RELATIVE_ABUNDANCE_DATA_FORMULA.xlsx` (pre-processed data used for model fitting) | `DATA_PAN.R` for pre-processing |
+
+All data files were curated and formatted to ensure transparency and reproducibility throughout our inference process. The R scripts provided in each folder detail the pre-processing steps applied to the raw data before model inference.
+
+## Model Simulation
+You can simulate our mathematical model using `RUN_SIMULATION.R` for any scenario you wish to explore. For a more interactive experience, please visit our Shiny app: [ONIMTOL Shiny App](https://burcutepekule.shinyapps.io/ONIMTOL/). Please note that computations might take some time, as the differential equation system is integrated in real time, but it will be worth it!
+
+![ONIMTOL Shiny App Screenshot](https://github.com/burcutepekule/ONIMTOL/assets/2311100/bc654507-8dbc-44d4-9709-38c85b990020)
+  
 <p>You can simulate our mathematical model using <code>RUN_SIMULATION.R</code> for any scenario you wish to explore. For a more interactive experience, please visit our Shiny app: <a href="https://burcutepekule.shinyapps.io/ONIMTOL/", target="_blank">ONIMTOL Shiny App</a>. Please note that computations might take some time, as the differential equation system is integrated in real time, but it will be worth it!</p>
 
 ![Screen Shot 2024-05-15 at 13 44 25](https://github.com/burcutepekule/ONIMTOL/assets/2311100/bc654507-8dbc-44d4-9709-38c85b990020)

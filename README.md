@@ -15,9 +15,6 @@ Data from Palmer _et al._ is extracted from Fig. 2 (quantified and interpolated 
 All data files were curated and formatted to ensure transparency and reproducibility throughout our inference process. The R scripts provided in each folder detail the pre-processing steps applied to the raw data before model inference.
 
 ## Model Simulation
-You can simulate our mathematical model using `RUN_SIMULATION.R` for any scenario you wish to explore. For a more interactive experience, please visit our Shiny app: [ONIMTOL Shiny App](https://burcutepekule.shinyapps.io/ONIMTOL/). Please note that computations might take some time, as the differential equation system is integrated in real time, but it will be worth it!
-
-![ONIMTOL Shiny App Screenshot](https://github.com/burcutepekule/ONIMTOL/assets/2311100/bc654507-8dbc-44d4-9709-38c85b990020)
   
 <p>You can simulate our mathematical model using <code>RUN_SIMULATION.R</code> for any scenario you wish to explore. For a more interactive experience, please visit our Shiny app: <a href="https://burcutepekule.shinyapps.io/ONIMTOL/", target="_blank">ONIMTOL Shiny App</a>. Please note that computations might take some time, as the differential equation system is integrated in real time, but it will be worth it!</p>
 

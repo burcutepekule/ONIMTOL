@@ -98,23 +98,21 @@ addWithFood_vector     = metabolism$withfood
 ############### LOAD_DATA.R - END ############################################# 
 
 ############### LOAD_DATA_LIST.R - BEGIN ############################################# 
-target_timestamp = 1711378123+10 # NEW
-chain_index      = 1234
 # LOAD INFERRED-1 RESULTS
-summary_df             = readRDS(paste0('summary_df_',target_timestamp,'_',chain_index,'.rds'))
+summary_df             = readRDS('summary_df_AG_MERGED_0.rds')
 summary_df_theta       = summary_df[grep('^theta_out\\.[0-9]+$', summary_df$variable), ]
 theta_in               = summary_df_theta$median
 
 mIgA_reactivity_vector = theta_in[(numTaxa+numAgnostic+numGnostic+1):(numTaxa+numAgnostic+numGnostic+numTaxa)]
 # LOAD INFERRED-2 RESULTS
-alpha_vector = c(10.062,0.089,0.048,0.040)
-kappa_vector = c(314.093,1.264,1.519,2.151)
-tau_new       = 180.165
-tau_c         = 20.12
-tau_delta     = 0.078
-C_n           = 0.034
-c_n           = 0.000634
-C_I           = 3.43
+alpha_vector  = c(1,0.008,0.036,0.038) # invasiveness, effects sampling
+kappa_vector  = c(358,1,1,1) # total inflammation
+tau_new       = 180.21 # additional SD in the newly coming naive B pool
+tau_c         = 28.33 # additional SD after SHM - minimum 30
+tau_delta     = 0.42 # per step increase in the selection threshold
+C_n           = 0.03 # IC abundance of the T/B pool
+C_I           = 12.39 # max capacity of IgA secretion per plasma cell - this impacts how *fast* you see the feedback loop of IgA
+c_n           = 0.000634 # For exp(-c*t) to go from 1 to 0.5 in 720 days: higher the c_n, faster the convergence - but it will converge to a lower value bc cells will be depleted so aff mat will not continue
 
 abundanceArray_meanSubjects <- as.data.frame(abundanceArray_meanSubjects) %>%
   dplyr::mutate(across(c(Enterobacteriaceae, Bifidobacteriaceae, Bacteroidaceae, Clostridiales), 
@@ -138,6 +136,7 @@ drate_base             = theta_in[(numTaxa+numAgnostic+numGnostic+numTaxa+1+numT
 
 ############### LOAD_DATA_LIST.R - END ############################################# 
 ############### MODEL_BASE_FUNCTIONS.R - BEGIN #####################################
+
 
 div0 = function(nom, denom) {
   if (nom <= 0 | denom <= 0) {
@@ -420,7 +419,9 @@ calculate_rates_onthefly_fast = function(numTaxa, t, selection_thresholds,
     
     affinity_threshold_circulating = selection_thresholds[tx]
     mean_aff_circulating           = circulating_affinity[tx]
-    std_impact                     = tau_c*abs(affinity_threshold_circulating - mean_aff_circulating)
+    diff_aff_std                   = round((affinity_threshold_circulating - mean_aff_circulating),6)
+    std_impact                     = tau_c*(diff_aff_std^2)
+    
     new_circulating_from_naive     = influx_circulating[tx] # this is equal to rate of activation
     
     if(new_circulating_from_naive>1e-8){
@@ -483,7 +484,7 @@ calculate_rates_onthefly_fast = function(numTaxa, t, selection_thresholds,
       prob_transfer_circulating2plasma = prob_transfer_circulating
       total_transfer2plasma            = prob_transfer_circulating2plasma*circulating_darkzone_count
       
-      # this might make it faster at the beginning, but those will live short
+      # # this might make it faster at the beginning, but those will live short
       vacancy_mult                     = max(0,(1-plasma_count))
       prob_transfer_circulating2plasma = vacancy_mult*prob_transfer_circulating2plasma
       
@@ -508,7 +509,9 @@ calculate_rates_onthefly_fast = function(numTaxa, t, selection_thresholds,
       
       # then, SHM - mean affinity doesn't change, standart deviation changes
       new_total_affinity_after_SHM            = new_total_affinity_after_proliferation
+      # new_standart_dev_after_SHM              = sd_normal_after_apoptf+std_impact
       new_standart_dev_after_SHM              = sd_normal_after_apoptf+std_impact
+      
       
       n_x  = circulating_darkzone_count_after_apoptf*(1+proliferation_circulating) 
       mu_x = out_circulating[2]
@@ -554,7 +557,6 @@ function_eIgA = function(numTaxa, t, C_I, t_kickstart, number_of_plasma_cells) {
   return(C_I*th_0_vector(number_of_plasma_cells))
 }
 
-
 ODE_MODEL_STEROIDS = function(t, y, parms) { # TO UNDERSTAND WHEN TO OPEN M CELLS
   
   x_i   = parms$x_i
@@ -584,6 +586,9 @@ ODE_MODEL_STEROIDS = function(t, y, parms) { # TO UNDERSTAND WHEN TO OPEN M CELL
 }
 
 ODE_MODEL = function(t, y, parms) {
+  
+  # y = round(y,8) # ADDED 18TH OF JUNE
+  # y[y < 1e-8] = 0  # Or another small threshold
   
   x_i   = parms$x_i
   x_r   = parms$x_r
@@ -623,6 +628,7 @@ ODE_MODEL = function(t, y, parms) {
   abundancevectemp_uc_lumen      = th_0_vector(y[1:numTaxa])
   abundancevectemp_c_lumen       = th_0_vector(y[(numTaxa+1):(2*numTaxa)])
   abundancevectemp_k_feces_cumul = y[(2*numTaxa+1):(3*numTaxa)]
+  abundancevectemp_total_lumen_cumul = th_0_vector(y[(9*numTaxa+1):(10*numTaxa)])
   
   naive_Bcell_count       = y[(3*numTaxa+1):(4*numTaxa)]
   circulating_Bcell_count = y[(4*numTaxa+1):(5*numTaxa)]
@@ -636,14 +642,18 @@ ODE_MODEL = function(t, y, parms) {
   antigen_samples_uncoated_cumul = th_0_vector(y[(15*numTaxa+1):(16*numTaxa)])
   antigen_samples_coated_cumul   = th_0_vector(y[(16*numTaxa+1):(17*numTaxa)])
   
-  selection_thresholds     = y[(18*numTaxa+1):(19*numTaxa)] 
+  selection_thresholds     = y[(18*numTaxa+1):(19*numTaxa)]
+  
   selection_thresholds_lag = rep(0,numTaxa)
   
   for(j in 1:numTaxa){
+    # print(c(t,t-1))
     selection_thresholds_lag[j] = ifelse(t-EBF_duration-1<0, 0, lagvalue(t-1, 18*numTaxa+j))
   }
   
   death_rate_plasma = pmin(rep(1,numTaxa),div0_vector_vector((selection_thresholds-selection_thresholds_lag),selection_thresholds))
+  
+  # death_rate_plasma = c(0,0,0,0)
   # print(c(t,death_rate_plasma))
   level_O2   = y[19*numTaxa+1]
   level_mIgA = y[19*numTaxa+2]
@@ -688,6 +698,7 @@ ODE_MODEL = function(t, y, parms) {
   rate_transfer_circulating       = theta[last_index_theta_in+numTaxa+2+numTaxa+numTaxa+6]
   baseline_transfer_circulating   = theta[last_index_theta_in+numTaxa+2+numTaxa+numTaxa+7]
   rate_transfer_plasma            = theta[last_index_theta_in+numTaxa+2+numTaxa+numTaxa+8]
+  C_n                             = theta[last_index_theta_in+numTaxa+2+numTaxa+numTaxa+10]
   
   interaction_results     = interactionMat %*% abundancevectemp_total_lumen
   baseline_activation     = level_Mcell*baseline_activation  # it's zero, just to keep the idea here
@@ -708,11 +719,12 @@ ODE_MODEL = function(t, y, parms) {
   # Inflammation and antigen sampling
   total_inflammation      = sum(kappa_vector*abundancevectemp_uc_lumen)-sum(TLR9_vector*abundancevectemp_total_lumen)
   
-  if(total_inflammation<0){total_inflammation=1e-5}
+  if(total_inflammation<0){total_inflammation=0}
   
   antigens_sampled_uncoated      = rep(0,numTaxa)
   antigens_sampled_uncoated      = (1+total_inflammation)*alpha_vector*(level_Mcell*sampling_rates_uc)*abundancevectemp_uc_lumen
   antigens_sampled_coated        = (level_Mcell*sampling_rates_c)*abundancevectemp_c_lumen
+  antigens_sampled_total         = antigens_sampled_uncoated+antigens_sampled_coated
   
   # Naive B cell dynamics
   influx_of_naive_Bcells = rep(add_from_bone_marrow(t, C_n, c_n), numTaxa) # check whether 100* makes sense (it does)
@@ -724,6 +736,7 @@ ODE_MODEL = function(t, y, parms) {
   adj_inf                    = kappa_vector[1]*(growthRate_vector[1]/abs(interactionMat_flat[1]))
   delta_selection_thresholds = rep(0,numTaxa)
   delta_selection_thresholds = level_Mcell*add_from_bone_marrow(t, 1, c_n)*tau_delta*log(1+total_inflammation/adj_inf)*log(1+div0_vector_vector(antigen_samples_uncoated_cumul,antigen_samples_total_cumul))
+  
   
   output      = rep(0,4*numTaxa)
   output      = calculate_rates_onthefly_fast(numTaxa, t, selection_thresholds,
@@ -747,26 +760,20 @@ ODE_MODEL = function(t, y, parms) {
   
   # IgA dynamics
   
-  maternal_coating_in[which(maternal_coating_in<=0.5)]     = 0
-  maternal_killing_in[which(maternal_killing_in<=0.5)]     = 0
-  
   binding_ability_m = (maternal_mIgA_reactivity_vector>0)*(1-diassoc_rate_base/(1+maternal_mIgA_reactivity_vector));
-  coating_eff_m     = (maternal_coating_in>0)*binding_ability_m;
-  killing_eff_m     = (maternal_killing_in>0)*binding_ability_m;
-  
-  endogenous_coating_in[which(endogenous_coating_in<=0.5)] = 0
-  endogenous_killing_in[which(endogenous_killing_in<=0.5)] = 0
+  coating_eff_m     = binding_ability_m;
+  killing_eff_m     = binding_ability_m;
   
   binding_ability_e = (endogenous_mIgA_reactivity_vector>0)*(1-diassoc_rate_base/(1+endogenous_mIgA_reactivity_vector));
-  coating_eff_e     = (endogenous_coating_in>0)*binding_ability_e;
-  killing_eff_e     = (endogenous_killing_in>0)*binding_ability_e;
+  coating_eff_e     = binding_ability_e;
+  killing_eff_e     = binding_ability_e;
+  
   
   maternal_coating = level_mIgA*maternal_coating_in
   maternal_killing = level_mIgA*maternal_killing_in
   
   endogenous_coating = level_eIgA*endogenous_coating_in
   endogenous_killing = level_eIgA*endogenous_killing_in
-  
   
   k               = (1-IgA_halflife/C_I)
   dydt_eIgA        = level_eIgA_add*(1-k*level_eIgA)-rep(1, numTaxa)*IgA_halflife*level_eIgA
@@ -793,7 +800,7 @@ ODE_MODEL = function(t, y, parms) {
   # print(c(t,dy_circulating_std))
   
   dydt[(8*numTaxa+1):(9*numTaxa)]  = dy_plasma_affinity
-  dydt[(9*numTaxa+1):(10*numTaxa)] = rep(0,numTaxa) #empty - use it to keeo track of stg you want!
+  dydt[(9*numTaxa+1):(10*numTaxa)] = abundancevectemp_total_lumen 
   
   # IgA dynamics
   dydt[(10*numTaxa+1):(11*numTaxa)] = dydt_eIgA
@@ -818,9 +825,9 @@ ODE_MODEL = function(t, y, parms) {
   dydt[19*numTaxa+5] = level_solid
   dydt[19*numTaxa+6] = level_HMO*level_s_add - IgA_halflife*level_s
   
-  # Return the derivatives
   return(list(dydt))
 }
+
 
 progressEnv <- new.env()
 progressEnv$progress <- 0
@@ -835,6 +842,7 @@ ODE_MODEL_wrapper = function(t, state, parms) {
   }  
   return(ODE_MODEL(t, state, parms))
 }
+
 ############### MODEL_BASE_FUNCTIONS.R - END ################################## 
 # 
 ui <- fluidPage(
@@ -1080,11 +1088,6 @@ server <- function(input, output, session) {
       coating_eff     = as.numeric(mIgA_reactivity_vector>0)*(1-drate_base/(mIgA_reactivity_vector+1))
       killing_eff     = as.numeric(mIgA_reactivity_vector>0)*(1-drate_base/(mIgA_reactivity_vector+1))
       
-      init_coating[init_coating<=0.5]=0
-      init_killing[init_killing<=0.5]=0
-      coating_eff[init_coating<=0.5]=0
-      killing_eff[init_killing<=0.5]=0
-      
       init_coating = coating_eff*miga_0*init_coating
       init_killing = killing_eff*miga_0*init_killing
       init_noaction = 1-pmax(init_coating,init_killing)
@@ -1125,6 +1128,7 @@ server <- function(input, output, session) {
       theta[data_list_sim$last_index_theta_in+numTaxa+2+numTaxa+numTaxa+7] = 0 #data_list_sim$baseline_transfer_circulating
       theta[data_list_sim$last_index_theta_in+numTaxa+2+numTaxa+numTaxa+8] = data_list_sim$rate_transfer_plasma
       theta[data_list_sim$last_index_theta_in+numTaxa+2+numTaxa+numTaxa+9] = 0 # assign 0 for now, this will be the M cell opening time calculated during integration
+      theta[data_list_sim$last_index_theta_in+numTaxa+2+numTaxa+numTaxa+10] = data_list_sim$C_n # assign 0 for now, this will be the M cell opening time calculated during integration
       
       # Define time vectors for ODE integration
       ts_pred   = seq(0,max(data_list_sim$ts_pred))
@@ -1167,7 +1171,7 @@ server <- function(input, output, session) {
       
       # calculate time of m cell opening
       y_out_steroid = deSolve::ode(y = y0_s, times = ts_pred, func = ODE_MODEL_STEROIDS, parms = list(theta = theta, x_r = x_r, x_i = x_i), 
-                                   atol = 1.0E-3,  rtol = 1.0E-1, maxsteps = 1000)
+                                   atol = 1.0E-8,  rtol = 1.0E-5, maxsteps = 1000)
       y_out_steroid = as.data.frame(y_out_steroid)
       colnames(y_out_steroid)[2]='value'
       
@@ -1190,7 +1194,7 @@ server <- function(input, output, session) {
         
         # Run ODE solver for the first segment
         y_out_1 = deSolve::dede(y = y0, times = ts_pred_1, func = ODE_MODEL_wrapper, parms = list(theta = theta, x_r = x_r, x_i = x_i), 
-                                atol = 1.0E-3,  rtol = 1.0E-1, maxsteps = 1000, control = list(mxhist = 1e5))
+                                atol = 1.0E-8,  rtol = 1.0E-5, maxsteps = 1000, control = list(mxhist = 1e5))
         y_out_1_df = as.data.frame(y_out_1)
         # Assign the column names
         names(y_out_1_df) = column_names
@@ -1213,7 +1217,7 @@ server <- function(input, output, session) {
       
       
       y_out_2 = deSolve::dede(y = y0_in_2, times = ts_pred_2, func = ODE_MODEL_wrapper, parms = list(theta = theta, x_r = x_r, x_i = x_i),
-                              atol = 1.0E-3,  rtol = 1.0E-1, maxsteps = 1000, control = list(mxhist = 1e5))
+                              atol = 1.0E-8,  rtol = 1.0E-5, maxsteps = 1000, control = list(mxhist = 1e5))
       
       y_out_2_df = as.data.frame(y_out_2)
       
@@ -1611,7 +1615,6 @@ server <- function(input, output, session) {
     
     p_cals = p_cals + scale_x_continuous(limits = c(0, input$t_plot))
     
-    
     # inflammation
     variable       = 'level_inflammation_cumul'
     y_out_df_use   = y_out_df[c('days',variable)]
@@ -1698,7 +1701,7 @@ server <- function(input, output, session) {
     my_colors = c('#2bc5d8','#074fa8','#ff9aa1','#f20026')
     
     #### PLASMA AFFINITY
-    keep_miga_vec  = c(4.18,0.18,0.13,0.12)
+    keep_miga_vec  = c(9.3594600, 0.0519869, 0.1885430, 0.1912370)
     variable       = 'plasma_affinity'
     y_out_df_use   = y_out_df[c('days',paste0(variable,'_',seq(1,numTaxa)))]
     y_out_df_use_l = y_out_df_use %>% pivot_longer(!days, names_to = 'taxa',values_to = 'median')
@@ -1851,9 +1854,9 @@ server <- function(input, output, session) {
     
     y_lumen = merge(y_k_feces, merge(y_uc_lumen, y_c_lumen, by=c('days','taxa')), by=c('days','taxa'))
     
-    srate_coated   = 0.6975581 # data_list_sim$srate_c_in
-    srate_uncoated = 0.8035475 #data_list_sim$srate_uc_in
-    srate_killed   = 0.8286261 #data_list_sim$srate_k_in
+    srate_coated   = 0.4810564 # data_list_sim$srate_c_in
+    srate_uncoated = 0.8242413 #data_list_sim$srate_uc_in
+    srate_killed   = 0.8462441 #data_list_sim$srate_k_in
     
     y_lumen = y_lumen %>% dplyr::rowwise() %>% dplyr::mutate(median_tot = srate_coated*median_c+srate_killed*median_k+srate_uncoated*median_uc)
     y_lumen = y_lumen %>% dplyr::rowwise() %>% dplyr::mutate(median_ck_tot = srate_coated*median_c+srate_killed*median_k)
@@ -1967,7 +1970,7 @@ server <- function(input, output, session) {
     df_feces = rbind(df_feces,df_feces_total)
     df_lumen = rbind(df_lumen,df_lumen_total)
     
-    diassoc_rate_base = 0.7097489
+    diassoc_rate_base = 0.6020128
     out_df_aff        = out_df_aff %>% dplyr::rowwise() %>% dplyr::mutate(binding_ability=(median>0)*(diassoc_rate_base>0)*(1-diassoc_rate_base/(1+median)))
     df_feces          = merge(df_feces, out_df_aff, by=c('days','taxa'))
     
@@ -2009,8 +2012,12 @@ server <- function(input, output, session) {
     
     z = structure(list(Value= df_long$Value, Taxa= df_long$taxa, Measurement = df_long$Measurement), row.names = c(NA, -12L), class = c("tbl_df", "tbl", "data.frame"))
     
+    colnames(z)[2] = 'Taxon'
+    z_coating = z %>% dplyr::filter(Measurement != 'iga_index')
+    z_iga     = z %>% dplyr::filter(Measurement == 'iga_index')
+    
     # Create the combined plot with corrections
-    p_coating = ggplot(z, aes(x = Taxa, y = Value, fill = Measurement, pattern = Measurement)) +
+    p_coating = ggplot(z_coating, aes(x = Taxon, y = Value, fill = Measurement, pattern = Measurement)) +
       geom_bar_pattern(
         stat = "identity", position = "dodge",
         pattern_spacing = 0.05,
@@ -2018,11 +2025,18 @@ server <- function(input, output, session) {
       ) +
       coord_flip() +
       geom_hline(yintercept = 0, linetype = "solid", color = "black", size = 1) + # Corrected line at y=0
-      scale_fill_manual(values=c('gray', 'black','#FC6736'),labels = c("SIgA+ (M)", "SIgA+ (N)", "IgA Index")) +
-      scale_pattern_manual(values=c('none', 'none', 'stripe'),labels = c("SIgA+ (M)", "SIgA+ (N)", "IgA Index")) +
+      # scale_fill_manual(values=c('gray', 'black'),labels = c("SIgA+ (M)", "SIgA+ (N)")) +
+      # scale_pattern_manual(values=c('none', 'none'),labels = c("SIgA+ (M)", "SIgA+ (N)")) +
+      scale_fill_manual(values=c('gray', 'black'),labels = c("(M)", "(N)")) +
+      scale_pattern_manual(values=c('none', 'none'),labels = c("(M)", "(N)")) +
       ggpubr::theme_pubr() +
       theme(
-        legend.position = "right",
+        legend.position = c(1.075, 0.89),  # Position legend in top right corner
+        legend.justification = c(1, 1),   # Anchor point at top right of legend
+        legend.box.just = "right",        # Justify legend box
+        legend.margin = margin(6, 6, 6, 6), # Add some margin around the legend
+        legend.background = element_rect(fill = 'NA', color = 'NA'), # Optional: add background to legend
+        legend.title = element_blank(),
         panel.border = element_blank(), # Ensure the plot border is removed
         panel.grid.major.x = element_line(color = "lightgray", size = 0.1), # Add major grid lines for the y-axis (vertical due to coord_flip)
         panel.grid.minor.x = element_line(color = "lightgray", size = 0.1), # Optionally, add minor grid lines for the y-axis (vertical due to coord_flip)
@@ -2033,10 +2047,46 @@ server <- function(input, output, session) {
         axis.text.y = element_text(size = 10),
         panel.grid.major = element_blank(), # Optionally remove major grid lines
         panel.grid.minor = element_blank(), # Optionally remove minor grid lines
-        plot.title = element_text(size = 12)
+        plot.title = element_text(size = 12, hjust = 0.5)
       ) +
-      labs(title  = "Coating fractions and IgA Index", y = "Value") +
-      scale_y_continuous(limits = c(-0.7, 0.7))
+      labs(title  = "Coating fractions", y = "Value") +
+      scale_y_continuous(limits = c(-0.01, 0.55), 
+                         breaks = seq(-0.2, 0.60, by = 0.2),
+                         labels = function(x) sprintf("%.1f", x))
+    
+    p_iga = ggplot(z_iga, aes(x = Taxon, y = Value, fill = Measurement, pattern = Measurement)) +
+      geom_bar_pattern(
+        stat = "identity", position = "dodge",
+        pattern_spacing = 0.05,
+        pattern_angle = 45
+      ) +
+      coord_flip() +
+      geom_hline(yintercept = 0, linetype = "solid", color = "black", size = 1) + # Corrected line at y=0
+      scale_fill_manual(values=c('#FC6736'),labels = c("IgA Index")) +
+      scale_pattern_manual(values=c('stripe'),labels = c("IgA Index")) +
+      ggpubr::theme_pubr() +
+      theme(
+        legend.position = "none",
+        panel.border = element_blank(), # Ensure the plot border is removed
+        panel.grid.major.x = element_line(color = "lightgray", size = 0.1), # Add major grid lines for the y-axis (vertical due to coord_flip)
+        panel.grid.minor.x = element_line(color = "lightgray", size = 0.1), # Optionally, add minor grid lines for the y-axis (vertical due to coord_flip)
+        panel.grid.major.y = element_line(color = "lightgray", size = 0.1), # Add major grid lines for the y-axis (vertical due to coord_flip)
+        panel.grid.minor.y = element_line(color = "lightgray", size = 0.1), # Optionally, add minor grid lines for the y-axis (vertical due to coord_flip)
+        axis.line.y = element_blank(), # Remove axis lines
+        axis.ticks.y = element_blank(),
+        axis.text.y = element_text(size = 10),
+        panel.grid.major = element_blank(), # Optionally remove major grid lines
+        panel.grid.minor = element_blank(), # Optionally remove minor grid lines
+        plot.title = element_text(size = 12, hjust = 0.5)
+      ) +
+      labs(title  = "IgA index", y = "Value") +
+      scale_y_continuous(limits = c(-0.3, 0.65), 
+                         breaks = seq(-0.2, 0.60, by = 0.2),
+                         labels = function(x) sprintf("%.1f", x))
+    
+    p_coating = p_coating + scale_x_discrete(labels=c("C","BC","B","E"))
+    p_iga     = p_iga + scale_x_discrete(labels=c("C","BC","B","E"))
+    
     
     #### eIgA COUNT
     variable       = 'eIgA'
@@ -2072,7 +2122,7 @@ server <- function(input, output, session) {
                             plot.background = element_rect(fill = NA, colour = NA),
                             panel.background = element_rect(fill = NA, colour = NA))
     p_eiga = p_eiga + scale_x_continuous(limits = c(0, input$t_plot))
-    plot_grid(p_aff_log,p_eiga,p_coating,ncol = 3, rel_widths = c(1,1,1))
+    plot_grid(p_aff_log,p_eiga,p_coating,p_iga,ncol = 4, rel_widths = c(1,1,0.5,0.4))
   })
   
 }

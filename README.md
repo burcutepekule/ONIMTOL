@@ -10,6 +10,8 @@ This repository now contains all the datasets used throughout our inference proc
 | `PLANER_DATA/` | Planer _et al._, 2016 | IgA-Seq data | `IGASEQ_DATA_RAW.xlsx` (raw data) `IGASEQ_DATA_METADATA.xlsx` (metadata) `IGASEQ_DATA_PREPROCESSED.xlsx` (pre-processed data used for model fitting) | `DATA_PLANER.R` for pre-processing |
 | `PAN_DATA/` | Pan _et al._, 2022 | Relative abundance data in the absence of breastfeeding |  `RELATIVE_ABUNDANCE_DATA_FORMULA.xlsx` (pre-processed data used for model fitting) | `DATA_PAN.R` for pre-processing | `Figure2a_enhanced.png` is the enhanced version of Figure 2A, `Figure2a_quantified.png` is the barplot values extracted by Claude 3.7 Sonnet (Anthropic, 2025). 
 
+Data from Palmer _et al._ is extracted from Fig. 2 (quantified and interpolated in `DATA_PALMER.R`). IgA coating percentage data from van der Waaij _et al._ is extracted from Fig. 2 for the control group. 
+
 All data files were curated and formatted to ensure transparency and reproducibility throughout our inference process. The R scripts provided in each folder detail the pre-processing steps applied to the raw data before model inference.
 
 ## Model Simulation

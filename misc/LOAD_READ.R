@@ -18,7 +18,7 @@ index_taxa_all    = 1:length(taxa_array)
 
 ########### LOAD INTERACTION MASK VECTOR #######################################
 
-interactionMask      = read_excel('family_properties.xlsx',sheet = 'interactions',col_names = TRUE, skip=0) # for LOAD_INIT_1698698657.R
+interactionMask      = read_excel('family_properties.xlsx',sheet = 'interactions',col_names = TRUE, skip=0) 
 interactionMask_df   = as.data.frame(interactionMask)
 interactionMask_df[is.na(interactionMask_df)] = 0
 colnames(interactionMask_df)[1] = 'effected'

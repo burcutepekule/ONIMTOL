@@ -48,11 +48,6 @@ init_killing    = as.numeric(mIgA_reactivity_vector>0)*(1-1/(data_list_sim$bias_
 coating_eff     = as.numeric(mIgA_reactivity_vector>0)*(1-drate_base/(mIgA_reactivity_vector+1))
 killing_eff     = as.numeric(mIgA_reactivity_vector>0)*(1-drate_base/(mIgA_reactivity_vector+1))
 
-init_coating[init_coating<=0.5]=0
-init_killing[init_killing<=0.5]=0
-coating_eff[init_coating<=0.5]=0
-killing_eff[init_killing<=0.5]=0
-
 init_coating = coating_eff*miga_0*init_coating
 init_killing = killing_eff*miga_0*init_killing
 init_noaction = 1-pmax(init_coating,init_killing)
@@ -93,6 +88,7 @@ theta[data_list_sim$last_index_theta_in+numTaxa+2+numTaxa+numTaxa+6] = data_list
 theta[data_list_sim$last_index_theta_in+numTaxa+2+numTaxa+numTaxa+7] = 0 #data_list_sim$baseline_transfer_circulating
 theta[data_list_sim$last_index_theta_in+numTaxa+2+numTaxa+numTaxa+8] = data_list_sim$rate_transfer_plasma
 theta[data_list_sim$last_index_theta_in+numTaxa+2+numTaxa+numTaxa+9] = 0 # assign 0 for now, this will be the M cell opening time calculated during integration
+theta[data_list_sim$last_index_theta_in+numTaxa+2+numTaxa+numTaxa+10] = data_list_sim$C_n 
 
 # Define time vectors for ODE integration
 ts_pred   = seq(0,max(data_list_sim$ts_pred))

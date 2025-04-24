@@ -1,6 +1,3 @@
-
-
-mcell_th = 0.5 #
 parms = list(theta = theta, x_r = x_r, x_i = x_i)
 
 y0_s = miga_0
@@ -8,7 +5,7 @@ y0_s = miga_0
 
 # calculate time of m cell opening
 y_out_steroid = deSolve::ode(y = y0_s, times = ts_pred, func = ODE_MODEL_STEROIDS, parms = list(theta = theta, x_r = x_r, x_i = x_i), 
-                             atol = 1.0E-5,  rtol = 1.0E-3, maxsteps = 1000)
+                             atol = 1.0E-8,  rtol = 1.0E-5, maxsteps = 1000)
 y_out_steroid = as.data.frame(y_out_steroid)
 colnames(y_out_steroid)[2]='value'
 
@@ -31,7 +28,7 @@ if(length(ts_pred_1)>1){
   
   # Run ODE solver for the first segment
   y_out_1 = deSolve::dede(y = y0, times = ts_pred_1, func = ODE_MODEL, parms = list(theta = theta, x_r = x_r, x_i = x_i), 
-                          atol = 1.0E-5,  rtol = 1.0E-3, maxsteps = 1000, control = list(mxhist = 1e5))
+                          atol = 1.0E-8,  rtol = 1.0E-5, maxsteps = 1000, control = list(mxhist = 1e5))
   y_out_1_df = as.data.frame(y_out_1)
   # Assign the column names
   names(y_out_1_df) = column_names
@@ -58,11 +55,11 @@ if(!exists('silent')){
 if(silent==1){
   # Run ODE solver for the second segment without the wrapper function
   y_out_2 = deSolve::dede(y = y0_in_2, times = ts_pred_2, func = ODE_MODEL, parms = list(theta = theta, x_r = x_r, x_i = x_i),
-                          atol = 1.0E-5,  rtol = 1.0E-3, maxsteps = 1000, control = list(mxhist = 1e5))
+                          atol = 1.0E-8,  rtol = 1.0E-5, maxsteps = 1000, control = list(mxhist = 1e5))
 }else{
   # Run ODE solver for the second segment with the wrapper function
   y_out_2 = deSolve::dede(y = y0_in_2, times = ts_pred_2, func = ODE_MODEL_wrapper, parms = list(theta = theta, x_r = x_r, x_i = x_i),
-                          atol = 1.0E-5,  rtol = 1.0E-3, maxsteps = 1000, control = list(mxhist = 1e5))
+                          atol = 1.0E-8,  rtol = 1.0E-5, maxsteps = 1000, control = list(mxhist = 1e5))
 }
 
 

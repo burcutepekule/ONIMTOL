@@ -1,4 +1,3 @@
-
 div0 = function(nom, denom) {
   if (nom <= 0 | denom <= 0) {
     return(0)
@@ -280,7 +279,9 @@ calculate_rates_onthefly_fast = function(numTaxa, t, selection_thresholds,
     
     affinity_threshold_circulating = selection_thresholds[tx]
     mean_aff_circulating           = circulating_affinity[tx]
-    std_impact                     = tau_c*abs(affinity_threshold_circulating - mean_aff_circulating)
+    diff_aff_std                   = round((affinity_threshold_circulating - mean_aff_circulating),6)
+    std_impact                     = tau_c*(diff_aff_std^2)
+    
     new_circulating_from_naive     = influx_circulating[tx] # this is equal to rate of activation
     
     if(new_circulating_from_naive>1e-8){
@@ -343,14 +344,14 @@ calculate_rates_onthefly_fast = function(numTaxa, t, selection_thresholds,
       prob_transfer_circulating2plasma = prob_transfer_circulating
       total_transfer2plasma            = prob_transfer_circulating2plasma*circulating_darkzone_count
       
-      # this might make it faster at the beginning, but those will live short
+      # # this might make it faster at the beginning, but those will live short
       vacancy_mult                     = max(0,(1-plasma_count))
       prob_transfer_circulating2plasma = vacancy_mult*prob_transfer_circulating2plasma
       
       total_transfer2plasma            = prob_transfer_circulating2plasma*circulating_darkzone_count
       total_apoptosis                  = prob_apoptosis_circulating*circulating_darkzone_count
       prob_ct_circulating              = out_circulating[1]
-
+      
       # first, apoptosis and transfer
       circulating_darkzone_count_after_apoptf = circulating_darkzone_count-total_apoptosis-total_transfer2plasma
       
@@ -368,8 +369,10 @@ calculate_rates_onthefly_fast = function(numTaxa, t, selection_thresholds,
       
       # then, SHM - mean affinity doesn't change, standart deviation changes
       new_total_affinity_after_SHM            = new_total_affinity_after_proliferation
+      # new_standart_dev_after_SHM              = sd_normal_after_apoptf+std_impact
       new_standart_dev_after_SHM              = sd_normal_after_apoptf+std_impact
-
+      
+      
       n_x  = circulating_darkzone_count_after_apoptf*(1+proliferation_circulating) 
       mu_x = out_circulating[2]
       std_x= new_standart_dev_after_SHM
@@ -377,7 +380,7 @@ calculate_rates_onthefly_fast = function(numTaxa, t, selection_thresholds,
       n_y  = new_circulating_from_naive
       mu_y = 0 # 0 mean
       std_y= tau_new*new_circulating_from_naive # more added, more the standart deviation
-
+      
       # Calculate the combined mean
       mu_z = (n_x*mu_x+n_y*mu_y)/(n_x+n_y)
       # Calculate the combined std
@@ -444,6 +447,9 @@ ODE_MODEL_STEROIDS = function(t, y, parms) { # TO UNDERSTAND WHEN TO OPEN M CELL
 
 ODE_MODEL = function(t, y, parms) {
   
+  # y = round(y,8) # ADDED 18TH OF JUNE
+  # y[y < 1e-8] = 0  # Or another small threshold
+  
   x_i   = parms$x_i
   x_r   = parms$x_r
   theta = parms$theta
@@ -473,15 +479,16 @@ ODE_MODEL = function(t, y, parms) {
   level_hmo                       = x_r[3*numTaxa+12]
   range_tf                        = x_r[3*numTaxa+13]
   range_apop                      = x_r[3*numTaxa+14]
-  
+ 
   t0_mcell = theta[last_index_theta_in+numTaxa+2+numTaxa+numTaxa+9]
-
+  
   # Initialize dydt
   dydt = numeric(19*numTaxa+7)
-
+  
   abundancevectemp_uc_lumen      = th_0_vector(y[1:numTaxa])
   abundancevectemp_c_lumen       = th_0_vector(y[(numTaxa+1):(2*numTaxa)])
   abundancevectemp_k_feces_cumul = y[(2*numTaxa+1):(3*numTaxa)]
+  abundancevectemp_total_lumen_cumul = th_0_vector(y[(9*numTaxa+1):(10*numTaxa)])
   
   naive_Bcell_count       = y[(3*numTaxa+1):(4*numTaxa)]
   circulating_Bcell_count = y[(4*numTaxa+1):(5*numTaxa)]
@@ -495,14 +502,18 @@ ODE_MODEL = function(t, y, parms) {
   antigen_samples_uncoated_cumul = th_0_vector(y[(15*numTaxa+1):(16*numTaxa)])
   antigen_samples_coated_cumul   = th_0_vector(y[(16*numTaxa+1):(17*numTaxa)])
   
-  selection_thresholds     = y[(18*numTaxa+1):(19*numTaxa)] 
+  selection_thresholds     = y[(18*numTaxa+1):(19*numTaxa)]
+  
   selection_thresholds_lag = rep(0,numTaxa)
   
   for(j in 1:numTaxa){
+    # print(c(t,t-1))
     selection_thresholds_lag[j] = ifelse(t-EBF_duration-1<0, 0, lagvalue(t-1, 18*numTaxa+j))
   }
   
   death_rate_plasma = pmin(rep(1,numTaxa),div0_vector_vector((selection_thresholds-selection_thresholds_lag),selection_thresholds))
+  
+  # death_rate_plasma = c(0,0,0,0)
   # print(c(t,death_rate_plasma))
   level_O2   = y[19*numTaxa+1]
   level_mIgA = y[19*numTaxa+2]
@@ -547,6 +558,7 @@ ODE_MODEL = function(t, y, parms) {
   rate_transfer_circulating       = theta[last_index_theta_in+numTaxa+2+numTaxa+numTaxa+6]
   baseline_transfer_circulating   = theta[last_index_theta_in+numTaxa+2+numTaxa+numTaxa+7]
   rate_transfer_plasma            = theta[last_index_theta_in+numTaxa+2+numTaxa+numTaxa+8]
+  C_n                             = theta[last_index_theta_in+numTaxa+2+numTaxa+numTaxa+10]
   
   interaction_results     = interactionMat %*% abundancevectemp_total_lumen
   baseline_activation     = level_Mcell*baseline_activation  # it's zero, just to keep the idea here
@@ -566,12 +578,13 @@ ODE_MODEL = function(t, y, parms) {
   
   # Inflammation and antigen sampling
   total_inflammation      = sum(kappa_vector*abundancevectemp_uc_lumen)-sum(TLR9_vector*abundancevectemp_total_lumen)
-
-  if(total_inflammation<0){total_inflammation=1e-5}
-
+  
+  if(total_inflammation<0){total_inflammation=0}
+  
   antigens_sampled_uncoated      = rep(0,numTaxa)
   antigens_sampled_uncoated      = (1+total_inflammation)*alpha_vector*(level_Mcell*sampling_rates_uc)*abundancevectemp_uc_lumen
   antigens_sampled_coated        = (level_Mcell*sampling_rates_c)*abundancevectemp_c_lumen
+  antigens_sampled_total         = antigens_sampled_uncoated+antigens_sampled_coated
   
   # Naive B cell dynamics
   influx_of_naive_Bcells = rep(add_from_bone_marrow(t, C_n, c_n), numTaxa) # check whether 100* makes sense (it does)
@@ -583,13 +596,14 @@ ODE_MODEL = function(t, y, parms) {
   adj_inf                    = kappa_vector[1]*(growthRate_vector[1]/abs(interactionMat_flat[1]))
   delta_selection_thresholds = rep(0,numTaxa)
   delta_selection_thresholds = level_Mcell*add_from_bone_marrow(t, 1, c_n)*tau_delta*log(1+total_inflammation/adj_inf)*log(1+div0_vector_vector(antigen_samples_uncoated_cumul,antigen_samples_total_cumul))
-
+  
+  
   output      = rep(0,4*numTaxa)
   output      = calculate_rates_onthefly_fast(numTaxa, t, selection_thresholds,
-                                         proliferation_circulating, circulating_Bcell_count, plasma_Bcell_count, 
-                                         circulating_affinity, plasma_affinity, influx_circulating, sample_size, 
-                                         rate_transfer_circulating, range_tf, range_apop,
-                                         tau_new, circulating_std, tau_c)
+                                              proliferation_circulating, circulating_Bcell_count, plasma_Bcell_count, 
+                                              circulating_affinity, plasma_affinity, influx_circulating, sample_size, 
+                                              rate_transfer_circulating, range_tf, range_apop,
+                                              tau_new, circulating_std, tau_c)
   
   dy_circulating_affinity    = output[(0*numTaxa+1):(1*numTaxa)]
   dy_plasma_affinity         = output[(1*numTaxa+1):(2*numTaxa)]
@@ -606,19 +620,14 @@ ODE_MODEL = function(t, y, parms) {
   
   # IgA dynamics
   
-  maternal_coating_in[which(maternal_coating_in<=0.5)]     = 0
-  maternal_killing_in[which(maternal_killing_in<=0.5)]     = 0
-  
   binding_ability_m = (maternal_mIgA_reactivity_vector>0)*(1-diassoc_rate_base/(1+maternal_mIgA_reactivity_vector));
-  coating_eff_m     = (maternal_coating_in>0)*binding_ability_m;
-  killing_eff_m     = (maternal_killing_in>0)*binding_ability_m;
-  
-  endogenous_coating_in[which(endogenous_coating_in<=0.5)] = 0
-  endogenous_killing_in[which(endogenous_killing_in<=0.5)] = 0
+  coating_eff_m     = binding_ability_m;
+  killing_eff_m     = binding_ability_m;
   
   binding_ability_e = (endogenous_mIgA_reactivity_vector>0)*(1-diassoc_rate_base/(1+endogenous_mIgA_reactivity_vector));
-  coating_eff_e     = (endogenous_coating_in>0)*binding_ability_e;
-  killing_eff_e     = (endogenous_killing_in>0)*binding_ability_e;
+  coating_eff_e     = binding_ability_e;
+  killing_eff_e     = binding_ability_e;
+  
   
   maternal_coating = level_mIgA*maternal_coating_in
   maternal_killing = level_mIgA*maternal_killing_in
@@ -626,7 +635,6 @@ ODE_MODEL = function(t, y, parms) {
   endogenous_coating = level_eIgA*endogenous_coating_in
   endogenous_killing = level_eIgA*endogenous_killing_in
   
-
   k               = (1-IgA_halflife/C_I)
   dydt_eIgA        = level_eIgA_add*(1-k*level_eIgA)-rep(1, numTaxa)*IgA_halflife*level_eIgA
   
@@ -652,7 +660,7 @@ ODE_MODEL = function(t, y, parms) {
   # print(c(t,dy_circulating_std))
   
   dydt[(8*numTaxa+1):(9*numTaxa)]  = dy_plasma_affinity
-  dydt[(9*numTaxa+1):(10*numTaxa)] = rep(0,numTaxa) #empty - use it to keeo track of stg you want!
+  dydt[(9*numTaxa+1):(10*numTaxa)] = abundancevectemp_total_lumen 
   
   # IgA dynamics
   dydt[(10*numTaxa+1):(11*numTaxa)] = dydt_eIgA
@@ -676,17 +684,17 @@ ODE_MODEL = function(t, y, parms) {
   dydt[19*numTaxa+4] = level_HMO
   dydt[19*numTaxa+5] = level_solid
   dydt[19*numTaxa+6] = level_HMO*level_s_add - IgA_halflife*level_s
-
-  # Return the derivatives
+  
   return(list(dydt))
 }
 
 
 # Define a wrapper function for ODE_MODEL
 ODE_MODEL_wrapper = function(t, state, parms) {
-  if (round(t) %% 100 == 0) {
-    print(paste("Solving for day:", round(t,2)))
+  if (round(t) %% 10 == 0) {
+    print(paste("Solving for day:", round(t,3)))
     flush.console()
   }
+  
   return(ODE_MODEL(t, state, parms))
 }

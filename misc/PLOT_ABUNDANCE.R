@@ -377,8 +377,12 @@ df_long$taxa = factor(df_long$taxa, levels = c("Clostridiales", "Bacteroidaceae"
 
 z = structure(list(Value= df_long$Value, Taxa= df_long$taxa, Measurement = df_long$Measurement), row.names = c(NA, -12L), class = c("tbl_df", "tbl", "data.frame"))
 
+colnames(z)[2] = 'Taxon'
+z_coating = z %>% dplyr::filter(Measurement != 'iga_index')
+z_iga     = z %>% dplyr::filter(Measurement == 'iga_index')
+
 # Create the combined plot with corrections
-p_coating <- ggplot(z, aes(x = Taxa, y = Value, fill = Measurement, pattern = Measurement)) +
+p_coating = ggplot(z_coating, aes(x = Taxon, y = Value, fill = Measurement, pattern = Measurement)) +
   geom_bar_pattern(
     stat = "identity", position = "dodge",
     pattern_spacing = 0.05,
@@ -386,11 +390,18 @@ p_coating <- ggplot(z, aes(x = Taxa, y = Value, fill = Measurement, pattern = Me
   ) +
   coord_flip() +
   geom_hline(yintercept = 0, linetype = "solid", color = "black", size = 1) + # Corrected line at y=0
-  scale_fill_manual(values=c('gray', 'black','#FC6736'),labels = c("SIgA+ (C)", "SIgA+ (N)", "IgA Index")) +
-  scale_pattern_manual(values=c('none', 'none', 'stripe'),labels = c("SIgA+ (C)", "SIgA+ (N)", "IgA Index")) +
+  # scale_fill_manual(values=c('gray', 'black'),labels = c("SIgA+ (M)", "SIgA+ (N)")) +
+  # scale_pattern_manual(values=c('none', 'none'),labels = c("SIgA+ (M)", "SIgA+ (N)")) +
+  scale_fill_manual(values=c('gray', 'black'),labels = c("(M)", "(N)")) +
+  scale_pattern_manual(values=c('none', 'none'),labels = c("(M)", "(N)")) +
   ggpubr::theme_pubr() +
   theme(
-    legend.position = "right",
+    legend.position = c(1.075, 0.89),  # Position legend in top right corner
+    legend.justification = c(1, 1),   # Anchor point at top right of legend
+    legend.box.just = "right",        # Justify legend box
+    legend.margin = margin(6, 6, 6, 6), # Add some margin around the legend
+    legend.background = element_rect(fill = 'NA', color = 'NA'), # Optional: add background to legend
+    legend.title = element_blank(),
     panel.border = element_blank(), # Ensure the plot border is removed
     panel.grid.major.x = element_line(color = "lightgray", size = 0.1), # Add major grid lines for the y-axis (vertical due to coord_flip)
     panel.grid.minor.x = element_line(color = "lightgray", size = 0.1), # Optionally, add minor grid lines for the y-axis (vertical due to coord_flip)
@@ -401,10 +412,42 @@ p_coating <- ggplot(z, aes(x = Taxa, y = Value, fill = Measurement, pattern = Me
     axis.text.y = element_text(size = 10),
     panel.grid.major = element_blank(), # Optionally remove major grid lines
     panel.grid.minor = element_blank(), # Optionally remove minor grid lines
-    plot.title = element_text(size = 12)
+    plot.title = element_text(size = 12, hjust = 0.5)
   ) +
-  labs(title  = "Coating fractions and IgA Index", y = "Value") +
-  scale_y_continuous(limits = c(-0.7, 0.7))
+  labs(title  = "Coating fractions", y = "Value") +
+  scale_y_continuous(limits = c(-0.01, 0.55), 
+                     breaks = seq(-0.2, 0.60, by = 0.2),
+                     labels = function(x) sprintf("%.1f", x))
+
+p_iga = ggplot(z_iga, aes(x = Taxon, y = Value, fill = Measurement, pattern = Measurement)) +
+  geom_bar_pattern(
+    stat = "identity", position = "dodge",
+    pattern_spacing = 0.05,
+    pattern_angle = 45
+  ) +
+  coord_flip() +
+  geom_hline(yintercept = 0, linetype = "solid", color = "black", size = 1) + # Corrected line at y=0
+  scale_fill_manual(values=c('#FC6736'),labels = c("IgA Index")) +
+  scale_pattern_manual(values=c('stripe'),labels = c("IgA Index")) +
+  ggpubr::theme_pubr() +
+  theme(
+    legend.position = "none",
+    panel.border = element_blank(), # Ensure the plot border is removed
+    panel.grid.major.x = element_line(color = "lightgray", size = 0.1), # Add major grid lines for the y-axis (vertical due to coord_flip)
+    panel.grid.minor.x = element_line(color = "lightgray", size = 0.1), # Optionally, add minor grid lines for the y-axis (vertical due to coord_flip)
+    panel.grid.major.y = element_line(color = "lightgray", size = 0.1), # Add major grid lines for the y-axis (vertical due to coord_flip)
+    panel.grid.minor.y = element_line(color = "lightgray", size = 0.1), # Optionally, add minor grid lines for the y-axis (vertical due to coord_flip)
+    axis.line.y = element_blank(), # Remove axis lines
+    axis.ticks.y = element_blank(),
+    axis.text.y = element_text(size = 10),
+    panel.grid.major = element_blank(), # Optionally remove major grid lines
+    panel.grid.minor = element_blank(), # Optionally remove minor grid lines
+    plot.title = element_text(size = 12, hjust = 0.5)
+  ) +
+  labs(title  = "IgA index", y = "Value") +
+  scale_y_continuous(limits = c(-0.3, 0.65), 
+                     breaks = seq(-0.2, 0.60, by = 0.2),
+                     labels = function(x) sprintf("%.1f", x))
 
 
 df_lumen_tot = df_lumen

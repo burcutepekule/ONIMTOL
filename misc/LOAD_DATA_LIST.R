@@ -1,21 +1,9 @@
-target_timestamp = 1711378123+10 # NEW
-chain_index      = 1234
 # LOAD INFERRED-1 RESULTS
-summary_df             = readRDS(paste0('summary_df_',target_timestamp,'_',chain_index,'.rds'))
+summary_df             = readRDS('./summary_df_AG_MERGED_0.rds')
 summary_df_theta       = summary_df[grep('^theta_out\\.[0-9]+$', summary_df$variable), ]
 theta_in               = summary_df_theta$median
 
 mIgA_reactivity_vector = theta_in[(numTaxa+numAgnostic+numGnostic+1):(numTaxa+numAgnostic+numGnostic+numTaxa)]
-# LOAD INFERRED-2 RESULTS
-alpha_vector = c(10.062,0.089,0.048,0.040)
-kappa_vector = c(314.093,1.264,1.519,2.151)
-tau_new       = 180.165
-tau_c         = 20.12
-tau_delta     = 0.078
-C_n           = 0.034
-c_n           = 0.000634
-C_I           = 3.43
-
 
 abundanceArray_meanSubjects <- as.data.frame(abundanceArray_meanSubjects) %>%
   dplyr::mutate(across(c(Enterobacteriaceae, Bifidobacteriaceae, Bacteroidaceae, Clostridiales), 
@@ -34,6 +22,17 @@ srate_k_in  = summary_df_k$mean
 
 mIgA_reactivity_vector = theta_in[(numTaxa+numAgnostic+numGnostic+1):(numTaxa+numAgnostic+numGnostic+numTaxa)]
 drate_base             = theta_in[(numTaxa+numAgnostic+numGnostic+numTaxa+1+numTaxa*numTaxa+17)]
+
+# LOAD INFERRED-2 RESULTS
+alpha_vector  = c(1,0.008,0.036,0.038) # invasiveness, effects sampling
+kappa_vector  = c(358,1,1,1) # total inflammation
+tau_new       = 180.21 # additional SD in the newly coming naive B pool
+tau_c         = 28.33 # additional SD after SHM - minimum 30
+tau_delta     = 0.42 # per step increase in the selection threshold
+C_n           = 0.03 # IC abundance of the T/B pool
+C_I           = 12.39 # max capacity of IgA secretion per plasma cell - this impacts how *fast* you see the feedback loop of IgA
+c_n           = 0.000634 # For exp(-c*t) to go from 1 to 0.5 in 720 days: higher the c_n, faster the convergence - but it will converge to a lower value bc cells will be depleted so aff mat will not continue
+
 
 data_list_sim = list(
   
@@ -119,7 +118,6 @@ abundanceArray_meanSubjects_day155 = abundanceArray_meanSubjects[155-3,]
 data_list_sim$add_e  = as.numeric(abundanceArray_meanSubjects_day155$Enterobacteriaceae)/function_solid(154+60,154,308,30,1,0)
 data_list_sim$add_bc = first_nonzero_values[3]/function_solid(154+60,154,308,30,1,0)
 data_list_sim$add_c  = first_nonzero_values[4]/function_solid(154+60,154,308,30,1,0)
-
 
 mIgA_in_keep = data_list_sim$theta_in[(numTaxa + numAgnostic + numGnostic + 1):(numTaxa + numAgnostic + numGnostic + numTaxa)]
 if(any(is.na(mIgA_in))){

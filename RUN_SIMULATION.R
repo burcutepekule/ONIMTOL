@@ -45,11 +45,12 @@ p_aff_log = p_aff_log + scale_color_manual(values = my_colors,labels = c("BC", "
 p_eiga    = p_eiga + scale_color_manual(values = my_colors,labels = c("BC", "B", "C", "E"))
 p_rel     = p_rel + scale_color_manual(values = my_colors,labels = c("BC", "B", "C", "E"))
 p_coating = p_coating + scale_x_discrete(labels=c("C","BC","B","E"))
+p_iga     = p_iga + scale_x_discrete(labels=c("C","BC","B","E"))
 
 spacer_grob = grid::nullGrob()
-row1   = plot_grid(p_cals,p_iga_function_merged,align='h',rel_widths = c(1,1),labels=c('a)','b)'))
-row2   = plot_grid(p_micro,p_aff_log,p_eiga,p_coating,align='h',ncol = 4, rel_widths = c(0.7,0.7,0.7,1),labels=c('c)','d)','e)','f)'))
-row3   = plot_grid(p_rel,p_abs,align='h', rel_widths = c(1.1,1),labels=c('g)','h)'))
+row1   = plot_grid(p_cals,p_iga_function_merged,align='h',rel_widths = c(1,1),labels=c('A)','B)'))
+row2   = plot_grid(p_micro,p_aff_log,p_eiga,p_coating,p_iga, align='h',ncol = 5, rel_widths = c(0.4,0.4,0.4,0.35,0.3),labels=c('C)','D)','E)','F)','G)'))
+row3   = plot_grid(p_rel,p_abs,align='h', rel_widths = c(1.1,1),labels=c('H)','I)'))
 nested = plot_grid(row1, spacer_grob, row2, spacer_grob, row3, ncol = 1, rel_heights = c(1, 0.05, 1, 0.05, 1))
 
 z_c  = z %>% filter(Measurement=='IgA_coated_fraction_c')
@@ -61,10 +62,10 @@ print(paste0('Coating ratio : ',round(100*mean(z_ck$Value),2),' %'))
 # ### IF YOU WANNA SAVE THE PLOT
 graphics.off()
 png(file =paste0("FIGURE_1_",EBF_duration,'_',MF_duration,".png"),    # The directory you want to save the file in
-    width     = 12,
+    width     = 13,
     height    = 10,
     units     = "in",
-    res       = 600)
+    res       = 300)
 nested
 dev.off()
 

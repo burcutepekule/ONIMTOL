@@ -171,15 +171,4 @@ if(EBF_duration>0 & MF_duration>0){
   p_cals <- p_cals + 
     annotate("text", x = EBF_duration+MF_duration+(max(df_long$t)-(EBF_duration+MF_duration))/2, y = yy+yy_off, label = "ECF", vjust = 2, size = 4) + ylim(0,1.4)
 }
-# Print the plot
-print(p_cals)
 
-
-# graphics.off()
-# png(file =paste0("/Users/burcutepekule/Library/CloudStorage/Dropbox/criticalwindow/code/R/RStan/PAPERPLOTS/PAPERPLOTS_CALORIES_",EBF_duration,".png"),   # The directory you want to save the file in
-#     width     = 7,
-#     height    = 3,
-#     units     = "in",
-#     res       = 600)
-# print(p)
-# dev.off()

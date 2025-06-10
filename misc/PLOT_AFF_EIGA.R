@@ -25,6 +25,9 @@ y_out_df_use_l <- y_out_df_use_l %>%
 out_df_aff = y_out_df_use_l
 out_df_e   = y_out_df_use_l %>% filter(taxa=='Enterobacteriaceae')
 out_df_ne  = y_out_df_use_l %>% filter(taxa!='Enterobacteriaceae')
+out_df_b   = y_out_df_use_l %>% filter(taxa=='Bifidobacteriaceae')
+out_df_bc  = y_out_df_use_l %>% filter(taxa=='Bacteroidaceae')
+out_df_c   = y_out_df_use_l %>% filter(taxa=='Clostridiales')
 
 
 ### if dydt keeps daily
@@ -103,6 +106,8 @@ p_aff_log = p_aff_log + guides(color = guide_legend(order = 1), linetype = guide
 out_df_ene_long_pick = out_df_ene_long %>% filter(type=='median' & value>0)
 min(out_df_ene_long_pick$days)
 
+aff_end = out_df_ene_long_pick %>% filter(days==max(days))
+
 p_aff_log = p_aff_log + coord_cartesian(xlim = c(min(out_df_ene_long_pick$days), max(data_list_sim$ts_pred)), ylim = c(0.01, mv))
 
 #### eIgA COUNT
@@ -117,6 +122,8 @@ y_out_df_use_l = y_out_df_use_l %>%
                               taxa_array[taxa_index], 
                               taxa)) %>%
   dplyr::select(-taxa_index) # Remove the temporary index column
+
+y_out_df_use_l_eiga = y_out_df_use_l
 
 # Plotting
 
@@ -154,8 +161,6 @@ p_aff_bar = ggplot(out_df_ene_last, aes(x = taxa, y = median, fill = taxa)) +
   theme(legend.position = "none")
 
 
-
-
 #### plasma COUNT
 
 variable       = 'plasma_Bcell_count'
@@ -174,6 +179,50 @@ y_out_df_use_plasma = y_out_df_use_l
 p_plasma = ggplot(y_out_df_use_l, aes(x = days, y = median, color = taxa)) +
   geom_line(size = 1) +  theme_minimal() +
   labs(title = "IgA+ Cell Count", x = "DOL", y = "") +
+  scale_color_manual(values = my_colors) +  
+  theme(legend.title = element_blank(), plot.title = element_text(size = 12)) 
+
+
+#### circulating COUNT
+
+variable       = 'circulating_Bcell_count'
+y_out_df_use   = y_out_df[c('days',paste0(variable,'_',seq(1,numTaxa)))]
+y_out_df_use_l = y_out_df_use %>% pivot_longer(!days, names_to = 'taxa',values_to = 'median')
+
+y_out_df_use_l <- y_out_df_use_l %>%
+  dplyr::mutate(taxa_index = as.numeric(str_extract(taxa, "[0-9]+")), # Extract the numeric part
+                taxa = ifelse(!is.na(taxa_index) & taxa_index <= length(taxa_array),
+                              taxa_array[taxa_index],
+                              taxa)) %>%
+  dplyr::select(-taxa_index) # Remove the temporary index column
+
+y_out_df_use_circulating = y_out_df_use_l
+
+p_circulating = ggplot(y_out_df_use_l, aes(x = days, y = median, color = taxa)) +
+  geom_line(size = 1) +  theme_minimal() +
+  labs(title = "Circulating B Cell Count", x = "DOL", y = "") +
+  scale_color_manual(values = my_colors) +  
+  theme(legend.title = element_blank(), plot.title = element_text(size = 12)) 
+
+
+#### naive COUNT
+
+variable       = 'naive_Bcell_count'
+y_out_df_use   = y_out_df[c('days',paste0(variable,'_',seq(1,numTaxa)))]
+y_out_df_use_l = y_out_df_use %>% pivot_longer(!days, names_to = 'taxa',values_to = 'median')
+
+y_out_df_use_l <- y_out_df_use_l %>%
+  dplyr::mutate(taxa_index = as.numeric(str_extract(taxa, "[0-9]+")), # Extract the numeric part
+                taxa = ifelse(!is.na(taxa_index) & taxa_index <= length(taxa_array),
+                              taxa_array[taxa_index],
+                              taxa)) %>%
+  dplyr::select(-taxa_index) # Remove the temporary index column
+
+y_out_df_use_naive = y_out_df_use_l
+
+p_naive = ggplot(y_out_df_use_l, aes(x = days, y = median, color = taxa)) +
+  geom_line(size = 1) +  theme_minimal() +
+  labs(title = "Naive B Cell Count", x = "DOL", y = "") +
   scale_color_manual(values = my_colors) +  
   theme(legend.title = element_blank(), plot.title = element_text(size = 12)) 
 

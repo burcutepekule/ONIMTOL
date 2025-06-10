@@ -22,7 +22,7 @@ df <- data.frame(
 )
 
 # Reshape the data for plotting with ggplot
-df_long <- melt(df, id.vars = 'x')
+df_long <- reshape2::melt(df, id.vars = 'x')
 
 variable       = 'plasma_affinity'
 y_out_df_use   = y_out_df[c('days',paste0(variable,'_',seq(1,numTaxa)))]
@@ -85,6 +85,15 @@ out_df_ene_last_ordered <- out_df_ene_last %>%arrange(taxa)
 
 out_df_ene_last = out_df_ene_last_ordered
 
+
+###### THIS IS sSIgA
+# out_df_ene_last$val = 0
+# out_df_ene_last[1,]$val = round(1-1/(1+out_df_ene_last[1,]$median),3)  
+# out_df_ene_last[2,]$val = round(1/(1+out_df_ene_last[2,]$median),3)  
+# out_df_ene_last[3,]$val = round(1/(1+out_df_ene_last[3,]$median),3)  
+# out_df_ene_last[4,]$val = round(1/(1+out_df_ene_last[4,]$median),3)  
+
+### PLOT mSIgA!
 out_df_ene_last$val = 0
 out_df_ene_last[1,]$val = round(1-1/(1+keep_miga_vec[1]),5)  
 out_df_ene_last[2,]$val = round(1/(1+keep_miga_vec[2]),5)  
@@ -92,6 +101,53 @@ out_df_ene_last[3,]$val = round(1/(1+keep_miga_vec[3]),5)
 out_df_ene_last[4,]$val = round(1/(1+keep_miga_vec[4]),5)  
 
 out_df_ene_last$point_color = c('#f20026','#074fa8','#2bc5d8','#ff9aa1')
+
+# Assuming p_iga_function is your initial ggplot object setup
+# p_iga_function_merged = ggplot() +
+#   geom_rect(aes(xmin = min(x_values), xmax = 1, ymin = 0.5, ymax = 1), fill = "gray", alpha = 0.1) +
+#   geom_rect(aes(xmin = 1, xmax = max(x_values), ymin = 0.5, ymax = 1), fill = "black", alpha = 0.1) +
+#   labs(title = "Rate of SIgA Function", x = "Affinity", y = "") +
+#   geom_line(data = df_long_short_y1_high, aes(x = x, y = value, color = variable), alpha = 1, size = 1) +
+#   geom_line(data = df_long_short_y2_high, aes(x = x, y = value, color = variable), alpha = 0.8, linetype = 'dotted', size = 1) +
+#   geom_line(data = df_long_short_y1_low, aes(x = x, y = value, color = variable), alpha = 0.8, linetype = 'dotted', size = 1) +
+#   geom_line(data = df_long_short_y2_low, aes(x = x, y = value, color = variable), alpha = 1, size = 1) +
+#   geom_line(data = df_long_short_w,  aes(x = x, y = value, color = variable), linetype = 'dashed', alpha = 1, size=1) +
+#   scale_x_log10() + 
+#   theme_minimal() +  
+#   theme(plot.title = element_text(size = 12), legend.position = "none") +
+#   scale_color_manual(values = c("#FF6333","gray", "black"), labels = c("" ,"Masking (M)", "Neutrilizing (N)"), name = "Action Type")
+
+
+# Create a plot
+# p_iga_function_merged <- ggplot() +
+#   geom_rect(aes(xmin = min(x_values), xmax = 1, ymin = 0.5, ymax = 1), fill = "gray", alpha = 0.1) +
+#   geom_rect(aes(xmin = 1, xmax = max(x_values), ymin = 0.5, ymax = 1), fill = "black", alpha = 0.1) +
+#   labs(title = "Rate of SIgA Function", x = "Affinity", y = "") +
+#   geom_line(data = df_long_short_y1_high, aes(x = x, y = value, color = "Masking (M)"), alpha = 1, size = 1) +
+#   geom_line(data = df_long_short_y2_high, aes(x = x, y = value, color = "Neutrilizing (N)"), linetype='dashed',alpha = 0.2, size = 1) +
+#   geom_line(data = df_long_short_y1_low, aes(x = x, y = value, color = "Masking (M)"), linetype='dashed',alpha = 0.6, size = 1) +
+#   geom_line(data = df_long_short_y2_low, aes(x = x, y = value, color = "Neutrilizing (N)"), alpha = 1, size = 1) +
+#   geom_line(data = df_long_short_w,  aes(x = x, y = value, color = "Binding Ability"), linetype = '11', alpha = 1, size=1) +
+#   scale_x_log10() + 
+#   theme_minimal() +  
+#   theme(plot.title = element_text(size = 12)) +
+#   scale_color_manual(values = c("Binding Ability" = "#FF6333", "Masking (M)" = "gray", "Neutrilizing (N)" = "black"), name = "") +
+#   guides(color = guide_legend(title = NULL, override.aes = list(linetype = c("11","solid", "solid"))))
+
+
+# p_iga_function_merged <- ggplot() +
+#   geom_rect(aes(xmin = min(x_values), xmax = 1, ymin = 0.5, ymax = 1), fill = "gray", alpha = 0.1) +
+#   geom_rect(aes(xmin = 1, xmax = max(x_values), ymin = 0.5, ymax = 1), fill = "black", alpha = 0.1) +
+#   labs(title = "Rate of SIgA Function", x = "Affinity", y = "") +
+#   geom_line(data = df_long_short_y1_high, aes(x = x, y = value, color = "Masking (M)"), alpha = 1, size = 1) +
+#   geom_line(data = df_long_short_y2_high, aes(x = x, y = value, color = "Neutrilizing (N)"), linetype='dashed',alpha = 0.2, size = 1) +
+#   geom_line(data = df_long_short_y1_low, aes(x = x, y = value, color = "Masking (M)"), linetype='dashed',alpha = 0.6, size = 1) +
+#   geom_line(data = df_long_short_y2_low, aes(x = x, y = value, color = "Neutrilizing (N)"), alpha = 1, size = 1) +
+#   scale_x_log10() + 
+#   theme_minimal() +  
+#   theme(plot.title = element_text(size = 12)) +
+#   scale_color_manual(values = c("Masking (M)" = "gray", "Neutrilizing (N)" = "black"), name = "") +
+#   guides(color = guide_legend(title = NULL, override.aes = list(linetype = c("solid", "solid"))))
 
 p_iga_function_merged = ggplot() +
   # geom_rect(aes(xmin = min(x_values), xmax = 1, ymin = 0, ymax = 1), fill = "gray", alpha = 0.1) +
@@ -141,6 +197,10 @@ annotate_points$y = c(0.56,0.56,0.75,0.22)
 annotate_points=as.data.frame(annotate_points)
 
 labels = c()
+# annotate_points$label[1] = paste0(out_df_ene_last$taxa[1],', ',round(1-1/(1+out_df_ene_last$median[1]),2))
+# annotate_points$label[2] = paste0(out_df_ene_last$taxa[2],', ',round(1/(1+out_df_ene_last$median[2]),2))
+# annotate_points$label[3] = paste0(out_df_ene_last$taxa[3],', ',round(1/(1+out_df_ene_last$median[3]),2))
+# annotate_points$label[4] = paste0(out_df_ene_last$taxa[4],', ',round(1/(1+out_df_ene_last$median[4]),2))
 
 padding = c('',
             '                                  ',
@@ -156,6 +216,12 @@ for (i in seq(1,4)){
   
   annotate_points$label[i] <- paste0(line1, "\n", line2)
 }
+
+# annotate_points$label[1] = paste0(out_df_ene_last$taxa[1],', ',round(1/(1+keep_miga_vec[1]),2),'(M)\n',round(1-1/(1+keep_miga_vec[1]),2),'(N)')
+# annotate_points$label[2] = paste0(out_df_ene_last$taxa[2],', ',round(1/(1+keep_miga_vec[2]),2),'(M)\n',round(1-1/(1+keep_miga_vec[2]),2),'(N)')
+# annotate_points$label[3] = paste0(out_df_ene_last$taxa[3],', ',round(1/(1+keep_miga_vec[3]),2),'(M)\n',round(1-1/(1+keep_miga_vec[3]),2),'(N)')
+# annotate_points$label[4] = paste0(out_df_ene_last$taxa[4],', ',round(1/(1+keep_miga_vec[4]),2),'(M)\n',round(1-1/(1+keep_miga_vec[4]),2),'(N)')
+
 
 annotate_points$category[1] = 'E'
 annotate_points$category[2] = 'B'

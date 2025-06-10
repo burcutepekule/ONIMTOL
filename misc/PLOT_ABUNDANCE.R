@@ -65,6 +65,29 @@ colnames(y_k_feces)[3] ='median_k'
 
 y_lumen = merge(y_k_feces, merge(y_uc_lumen, y_c_lumen, by=c('days','taxa')), by=c('days','taxa'))
 
+##### SAMPLED ANTIGENS IN THE PPs? ######
+
+variable       = 'antigens_sampled_uncoated'
+y_out_df_use   = y_out_df[c('days',paste0(variable,'_',seq(1,numTaxa)))]
+y_out_df_use_1 = y_out_df_use[1,]
+# Apply differential calculation to each column except 'days'
+for (col in names(y_out_df_use)[-1]) {  # Skipping the first column ('days')
+  y_out_df_use[[col]] <- c(NA, diff(y_out_df_use[[col]]))
+}
+y_out_df_use[1,] = y_out_df_use_1
+y_out_df_use_l = y_out_df_use %>% pivot_longer(!days, names_to = 'taxa',values_to = 'median')
+
+y_out_df_use_l <- y_out_df_use_l %>%
+  mutate(taxa_index = as.numeric(str_extract(taxa, "[0-9]+")), # Extract the numeric part
+         taxa = ifelse(!is.na(taxa_index) & taxa_index <= length(taxa_array), 
+                       taxa_array[taxa_index], 
+                       taxa)) %>%
+  dplyr::select(-taxa_index) # Remove the temporary index column
+
+y_sampled_PP = y_out_df_use_l
+##### SAMPLED ANTIGENS IN THE LYMPH NODE? ######
+
+
 srate_coated   = data_list_sim$srate_c_in
 srate_uncoated = data_list_sim$srate_uc_in
 srate_killed   = data_list_sim$srate_k_in
@@ -113,6 +136,7 @@ feces_daily_df_wide_norm_abundance$Clostridiales      =  (0.01*total_abundance_s
 
 feces_daily_df_wide_norm = cbind(feces_daily_df_wide[,1],feces_daily_df_wide_norm_abundance)
 
+t_data_full                      = unique(observations_long$days)
 observations_wide                = cbind(t_data_full,abundanceArray_meanSubjects)
 observations_wide_norm_abundance = observations_wide
 colnames(observations_wide_norm_abundance)[1]= 'time'
@@ -143,7 +167,7 @@ if (!exists("plot1")) {
 if(plot1 == 1){
   library(magick)
   
-  img   = readPNG("/Users/burcutepekule/Library/CloudStorage/Dropbox/criticalwindow/code/R/RStan/eye.png")
+  img   = readPNG("~/Dropbox/criticalwindow/code/R/RStan/eye.png")
   
   # Convert the image to a rasterGrob
   img_grob = rasterGrob(img, interpolate = TRUE)
@@ -197,14 +221,14 @@ seq_ticks = seq(0, 0.15, 0.05)
 # y_up = seq_ticks[which(seq_ticks>max(lumen_daily_cuc_df$median))[1]]
 y_up = round(max(lumen_daily_cuc_df$median)*1.1,2)
 
-
 p_abs=ggplot(lumen_daily_cuc_df, aes(x = days, y = median, color = taxa, linetype = coating)) +
   geom_line(size = 0.8) +  theme_minimal() +
   labs(title = "Absolute abundances in gut lumen", x = "DOL", y = "(Cells/g LC) x 1e-11") +
   scale_color_manual(values = my_colors) +
-  scale_linetype_manual(values = c("SIgA+" = "11", "SIgA-" = "solid")) +
+  scale_linetype_manual(values = c("SIgA+" = "dotdash", "SIgA-" = "solid")) +
   theme(legend.title = element_blank(), plot.title = element_text(size = 12))+
   scale_y_continuous(breaks = seq_ticks) + ylim(0,y_up)
+p_abs
 
 lumen_daily_cuc_df     = as.data.frame(lumen_daily_cuc_df)
 lumen_daily_cuc_df_e   = lumen_daily_cuc_df %>% filter(taxa=="Enterobacteriaceae" & coating=='SIgA-' & days<=14)
@@ -230,7 +254,9 @@ colnames(y_out_df_use)[2] = 'median'
 y_out_inf  = y_out_df_use
 y_out_df_use$median = y_out_df_use$median/unique(diff(y_out_df_use$days)) # proper values for differentiation
 
-y_out_df_use$median = y_out_df_use$median/max(y_out_df_use$median)
+y_out_df_use_micro_abs = y_out_df_use # keep abs value
+y_out_df_use$median = y_out_df_use$median/max(y_out_df_use$median) #normalized by the max value
+y_out_df_use$median = y_out_df_use$median #normalized by the max value
 micro_values = y_out_df_use$median
 
 
@@ -262,7 +288,7 @@ df_long$series <- factor(df_long$series, levels = c(
   "O2 concentration",
   "Microenvironmental stimulation"
 ))
-
+df_long_micro=df_long
 p_micro <- ggplot(df_long, aes(x = t, y = value, color = series, linetype = series)) +
   geom_line(data = df_long, size=0.7) +
   theme_minimal() +
@@ -340,7 +366,12 @@ df_feces = df_feces %>% dplyr::rowwise() %>% dplyr::mutate(IgA_uncoated_fraction
 
 df_feces = df_feces %>% dplyr::rowwise() %>% dplyr::mutate(IgA_plus=binding_ability*IgA_coated_fraction)
 df_feces = df_feces %>% dplyr::rowwise() %>% dplyr::mutate(IgA_minus=(1-binding_ability)*IgA_uncoated_fraction)
+# df_feces = df_feces %>% dplyr::rowwise() %>% dplyr::mutate(IgA_plus=IgA_coated_fraction)
+# df_feces = df_feces %>% dplyr::rowwise() %>% dplyr::mutate(IgA_minus=IgA_uncoated_fraction)
 df_feces = df_feces %>% dplyr::rowwise() %>% dplyr::mutate(iga_index=-1*(log(IgA_plus)-log(IgA_minus))/(log(IgA_plus)+log(IgA_minus)))
+
+
+df_feces_e = df_feces %>% filter(taxa=='Enterobacteriaceae')
 
 
 df_feces$sample = 'feces'
@@ -350,9 +381,11 @@ df_coating_ratio = df_feces[c('days','taxa','IgA_coated_fraction')]
 df_coating_ratio_c = df_feces[c('days','taxa','IgA_coated_fraction_c')]
 df_coating_ratio_k = df_feces[c('days','taxa','IgA_coated_fraction_k')]
 
-df_iga_index_conv       = df_iga_index %>% filter(days==735)
-df_coating_ratio_c_conv = df_coating_ratio_c  %>% filter(days==735)
-df_coating_ratio_k_conv = df_coating_ratio_k  %>% filter(days==735)
+
+
+df_iga_index_conv       = df_iga_index %>% filter(days==min(735,max(df_iga_index$days)))
+df_coating_ratio_c_conv = df_coating_ratio_c  %>% filter(days==min(735,max(df_iga_index$days)))
+df_coating_ratio_k_conv = df_coating_ratio_k  %>% filter(days==min(735,max(df_iga_index$days)))
 
 df_coating_ratio_conv = merge(df_coating_ratio_c_conv,df_coating_ratio_k_conv, by=c('days','taxa'))
 df_coating_ratio_conv = merge(df_coating_ratio_conv,df_iga_index_conv, by=c('days','taxa'))
@@ -377,6 +410,37 @@ df_long$taxa = factor(df_long$taxa, levels = c("Clostridiales", "Bacteroidaceae"
 
 z = structure(list(Value= df_long$Value, Taxa= df_long$taxa, Measurement = df_long$Measurement), row.names = c(NA, -12L), class = c("tbl_df", "tbl", "data.frame"))
 
+# # Create the combined plot with corrections - OLD, COMBINED
+# p_coating <- ggplot(z, aes(x = Taxa, y = Value, fill = Measurement, pattern = Measurement)) +
+#   geom_bar_pattern(
+#     stat = "identity", position = "dodge",
+#     pattern_spacing = 0.05,
+#     pattern_angle = 45
+#   ) +
+#   coord_flip() +
+#   geom_hline(yintercept = 0, linetype = "solid", color = "black", size = 1) + # Corrected line at y=0
+#   scale_fill_manual(values=c('gray', 'black','#FC6736'),labels = c("SIgA+ (M)", "SIgA+ (N)", "IgA Index")) +
+#   scale_pattern_manual(values=c('none', 'none', 'stripe'),labels = c("SIgA+ (M)", "SIgA+ (N)", "IgA Index")) +
+#   ggpubr::theme_pubr() +
+#   theme(
+#     legend.position = "right",
+#     panel.border = element_blank(), # Ensure the plot border is removed
+#     panel.grid.major.x = element_line(color = "lightgray", size = 0.1), # Add major grid lines for the y-axis (vertical due to coord_flip)
+#     panel.grid.minor.x = element_line(color = "lightgray", size = 0.1), # Optionally, add minor grid lines for the y-axis (vertical due to coord_flip)
+#     panel.grid.major.y = element_line(color = "lightgray", size = 0.1), # Add major grid lines for the y-axis (vertical due to coord_flip)
+#     panel.grid.minor.y = element_line(color = "lightgray", size = 0.1), # Optionally, add minor grid lines for the y-axis (vertical due to coord_flip)
+#     axis.line.y = element_blank(), # Remove axis lines
+#     axis.ticks.y = element_blank(),
+#     axis.text.y = element_text(size = 10),
+#     panel.grid.major = element_blank(), # Optionally remove major grid lines
+#     panel.grid.minor = element_blank(), # Optionally remove minor grid lines
+#     plot.title = element_text(size = 12)
+#   ) +
+#   labs(title  = "Coating fractions and IgA Index", y = "Value") +
+#   scale_y_continuous(limits = c(-0.3, 0.65), 
+#                      breaks = seq(-0.2, 0.60, by = 0.2),
+#                      labels = function(x) sprintf("%.1f", x))
+
 colnames(z)[2] = 'Taxon'
 z_coating = z %>% dplyr::filter(Measurement != 'iga_index')
 z_iga     = z %>% dplyr::filter(Measurement == 'iga_index')
@@ -399,7 +463,7 @@ p_coating = ggplot(z_coating, aes(x = Taxon, y = Value, fill = Measurement, patt
     legend.position = c(1.075, 0.89),  # Position legend in top right corner
     legend.justification = c(1, 1),   # Anchor point at top right of legend
     legend.box.just = "right",        # Justify legend box
-    legend.margin = margin(6, 6, 6, 6), # Add some margin around the legend
+    legend.margin = ggplot2::margin(6, 6, 6, 6),
     legend.background = element_rect(fill = 'NA', color = 'NA'), # Optional: add background to legend
     legend.title = element_blank(),
     panel.border = element_blank(), # Ensure the plot border is removed

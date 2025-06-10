@@ -68,5 +68,3 @@ png(file =paste0("FIGURE_1_",EBF_duration,'_',MF_duration,".png"),    # The dire
     res       = 300)
 nested
 dev.off()
-
-p_aff_log

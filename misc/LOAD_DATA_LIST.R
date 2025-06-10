@@ -1,5 +1,5 @@
 # LOAD INFERRED-1 RESULTS
-summary_df             = readRDS('./summary_df_AG_MERGED_0.rds')
+summary_df             = readRDS('./summary_df_chains.rds')
 summary_df_theta       = summary_df[grep('^theta_out\\.[0-9]+$', summary_df$variable), ]
 theta_in               = summary_df_theta$median
 

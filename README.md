@@ -19,3 +19,8 @@ All data files were curated and formatted to ensure transparency and reproducibi
 <p>You can simulate our mathematical model using <code>RUN_SIMULATION.R</code> for any scenario you wish to explore. For a more interactive experience, please visit our Shiny app: <a href="https://burcutepekule.shinyapps.io/ONIMTOL/", target="_blank">ONIMTOL Shiny App</a>. Please note that computations might take some time, as the differential equation system is integrated in real time, but it will be worth it!</p>
 
 ![ONIMTOL App Screenshot](shiny/app.png)
+
+## Reproducing Manuscript Plots
+
+The script `DATA_FIGXX.R` produces the output shown in Figure XX of the manuscript.
+

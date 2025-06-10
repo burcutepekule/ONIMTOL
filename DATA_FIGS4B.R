@@ -21,8 +21,11 @@ library(effsize)
 library(rstatix)
 setwd(dirname(rstudioapi::getSourceEditorContext()$path))
 
-load('./IMAGE_DATA4.RDATA') # Combined files of simulations over varying EBF and MF durations
-# check dataframe pdc_data_use
+pdc_data_use = readRDS('pdc_data_use.rds') # simulation data
+
+## TURN TO NUMERIC
+pdc_data_use$mf_length = as.numeric(as.character(pdc_data_use$mf_length))
+pdc_data_use$bm_cutoff = as.numeric(as.character(pdc_data_use$bm_cutoff))
 
 pdc_data_use_long = pdc_data_use[c('bm_cutoff','mf_length','aff_e','aff_b','aff_bc','aff_c')]
 pdc_data_use_long = pdc_data_use_long %>% filter(bm_cutoff %in% seq(0,180,15))

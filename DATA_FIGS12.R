@@ -21,6 +21,7 @@ setwd(dirname(rstudioapi::getSourceEditorContext()$path))
 auc_values_keep = readRDS('AUC_MODEL.rds')
 auc_values_data = readRDS('AUC_DATA.rds')
 
+# REMOVE AUC=1 
 sims_with_auc_1 <- auc_values_keep %>%
   group_by(sim) %>%
   filter(any(AUC == 1)) %>%
